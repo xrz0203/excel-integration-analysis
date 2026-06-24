@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Excel Integration and Analysis</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Ops Tool</p>
+          <h1>Excel Integration and Analysis</h1>
+          <p class="subtitle">批量读取同格式 Excel / CSV，识别指标字段，按你定义的口径生成汇总表。</p>
+        </div>
+        <label class="folder-picker">
+          <input id="fileInput" type="file" webkitdirectory directory multiple accept=".xlsx,.xls,.csv" />
+          <span>选择文件夹</span>
+        </label>
+      </section>
+
+      <section id="parsePanel" class="parse-panel" hidden>
+        <div>
+          <strong id="parseSummary">已选择文件，等待解析。</strong>
+          <p id="parseDetail">为避免大文件夹导致浏览器卡死，选择文件夹后需要手动开始解析。</p>
+        </div>
+        <button id="parseButton" class="primary" type="button">开始解析</button>
+      </section>
+
+      <section class="status-band" aria-live="polite">
+        <div>
+          <span class="metric-label">已读取文件</span>
+          <strong id="fileCount">0</strong>
+        </div>
+        <div>
+          <span class="metric-label">识别 Sheet</span>
+          <strong id="sheetCount">0</strong>
+        </div>
+        <div>
+          <span class="metric-label">识别字段</span>
+          <strong id="fieldCount">0</strong>
+        </div>
+        <div>
+          <span class="metric-label">有效汇总列</span>
+          <strong id="ruleCount">0</strong>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <aside class="panel">
+          <div class="panel-header">
+            <h2>字段识别</h2>
+            <p id="loadHint">先选择一个包含 Excel 或 CSV 的文件夹。</p>
+          </div>
+          <div class="field-scroll">
+            <div id="fieldsList" class="chips empty">暂无字段</div>
+            <div class="mini-table-wrap">
+              <table class="mini-table">
+                <thead>
+                  <tr>
+                    <th>文件</th>
+                    <th>Sheet</th>
+                    <th>字段</th>
+                    <th>数据行</th>
+                  </tr>
+                </thead>
+                <tbody id="filesBody">
+                  <tr>
+                    <td colspan="4">等待读取</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </aside>
+
+        <section class="panel builder">
+          <div class="panel-header split">
+            <div>
+              <h2>汇总格式</h2>
+              <p>每一条规则会生成汇总 Excel 的一列。第一列固定为文件名。</p>
+            </div>
+            <button id="addRuleButton" class="secondary" type="button">新增指标列</button>
+          </div>
+
+          <div id="rules" class="rules"></div>
+
+          <div class="actions">
+            <button id="previewButton" type="button">生成预览</button>
+            <button id="exportButton" class="primary" type="button" disabled>导出 Excel</button>
+            <a id="downloadLink" class="download-link" href="#" download hidden>下载已生成文件</a>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel preview-panel">
+        <div class="panel-header split">
+          <div>
+            <h2>结果预览</h2>
+            <p id="previewHint">配置规则后生成预览。</p>
+          </div>
+          <button id="sampleButton" class="ghost" type="button">载入示例数据</button>
+        </div>
+        <div class="table-wrap">
+          <table id="previewTable" class="preview-table">
+            <thead></thead>
+            <tbody>
+              <tr>
+                <td>暂无预览</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <template id="ruleTemplate">
+      <article class="rule-card">
+        <div class="rule-topline">
+          <label>
+            <span>汇总列名</span>
+            <input class="rule-name" type="text" value="前7日点击率" />
+          </label>
+          <button class="icon-button remove-rule" type="button" title="删除">×</button>
+        </div>
+        <div class="rule-grid">
+          <label>
+            <span>指标类型</span>
+            <select class="rule-type">
+              <option value="ratio">百分比 / 比率</option>
+              <option value="total">单指标汇总</option>
+            </select>
+          </label>
+          <label>
+            <span class="label-with-help">
+              起始数据行
+              <span
+                class="help-dot"
+                tabindex="0"
+                aria-label="第 1 条数据不包含表头，通常对应 Excel 里的第 2 行。"
+                >?</span
+              >
+            </span>
+            <input class="rule-start-row" type="number" min="1" max="500" step="1" value="1" />
+          </label>
+          <label>
+            <span class="label-with-help">
+              结束数据行
+              <span
+                class="help-dot"
+                tabindex="0"
+                aria-label="第 1 条数据不包含表头，通常对应 Excel 里的第 2 行。比如 2 到 8 表示取第 2 至第 8 条数据。"
+                >?</span
+              >
+            </span>
+            <input class="rule-end-row" type="number" min="1" max="500" step="1" value="7" />
+          </label>
+          <label class="ratio-only">
+            <span>分子所在 Tab</span>
+            <select class="rule-numerator-sheet"></select>
+          </label>
+          <label class="ratio-only">
+            <span>分子字段</span>
+            <select class="rule-numerator"></select>
+          </label>
+          <label class="ratio-only">
+            <span>分母所在 Tab</span>
+            <select class="rule-denominator-sheet"></select>
+          </label>
+          <label class="ratio-only">
+            <span>分母字段</span>
+            <select class="rule-denominator"></select>
+          </label>
+          <label class="ratio-only">
+            <span>输出格式</span>
+            <select class="rule-format">
+              <option value="percent">百分比</option>
+              <option value="decimal">小数</option>
+            </select>
+          </label>
+          <label class="total-only">
+            <span>指标所在 Tab</span>
+            <select class="rule-total-sheet"></select>
+          </label>
+          <label class="total-only">
+            <span>指标字段</span>
+            <select class="rule-total-field"></select>
+          </label>
+        </div>
+        <p class="rule-formula">公式：第 X 至第 Y 条数据的「分子 Tab / 字段」求和 ÷「分母 Tab / 字段」求和</p>
+      </article>
+    </template>
+
+    <script src="./app.js?v=20260624-3"></script>
+  </body>
+</html>
