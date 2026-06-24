@@ -331,6 +331,49 @@ label span {
   margin-bottom: 6px;
 }
 
+.label-with-help {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.help-dot {
+  align-items: center;
+  background: #edf2ef;
+  border-radius: 999px;
+  color: var(--accent-dark);
+  cursor: help;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 900;
+  height: 18px;
+  justify-content: center;
+  line-height: 1;
+  margin-bottom: 0;
+  position: relative;
+  width: 18px;
+}
+
+.help-dot:hover::after,
+.help-dot:focus::after {
+  background: var(--ink);
+  border-radius: 8px;
+  bottom: calc(100% + 8px);
+  color: white;
+  content: attr(aria-label);
+  font-size: 12px;
+  font-weight: 600;
+  left: 50%;
+  line-height: 1.45;
+  max-width: 260px;
+  min-width: 220px;
+  padding: 9px 10px;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: normal;
+  z-index: 5;
+}
+
 input,
 select {
   background: #fbfcfb;

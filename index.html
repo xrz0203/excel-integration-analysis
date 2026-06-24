@@ -134,8 +134,28 @@
             </select>
           </label>
           <label>
-            <span>取前几条数据</span>
-            <input class="rule-limit" type="number" min="1" max="500" step="1" value="7" />
+            <span class="label-with-help">
+              起始数据行
+              <span
+                class="help-dot"
+                tabindex="0"
+                aria-label="第 1 条数据不包含表头，通常对应 Excel 里的第 2 行。"
+                >?</span
+              >
+            </span>
+            <input class="rule-start-row" type="number" min="1" max="500" step="1" value="1" />
+          </label>
+          <label>
+            <span class="label-with-help">
+              结束数据行
+              <span
+                class="help-dot"
+                tabindex="0"
+                aria-label="第 1 条数据不包含表头，通常对应 Excel 里的第 2 行。比如 2 到 8 表示取第 2 至第 8 条数据。"
+                >?</span
+              >
+            </span>
+            <input class="rule-end-row" type="number" min="1" max="500" step="1" value="7" />
           </label>
           <label class="ratio-only">
             <span>分子所在 Tab</span>
@@ -169,10 +189,10 @@
             <select class="rule-total-field"></select>
           </label>
         </div>
-        <p class="rule-formula">公式：前 N 条「分子 Tab / 字段」求和 ÷ 前 N 条「分母 Tab / 字段」求和</p>
+        <p class="rule-formula">公式：第 X 至第 Y 条数据的「分子 Tab / 字段」求和 ÷「分母 Tab / 字段」求和</p>
       </article>
     </template>
 
-    <script src="./app.js?v=20260624-2"></script>
+    <script src="./app.js?v=20260624-3"></script>
   </body>
 </html>

@@ -328,7 +328,8 @@ function addRule(rule = {}) {
   const node = ruleTemplate.content.firstElementChild.cloneNode(true);
   node.querySelector(".rule-name").value = rule.name || "前7日点击率";
   node.querySelector(".rule-type").value = rule.type || "ratio";
-  node.querySelector(".rule-limit").value = rule.limit || 7;
+  node.querySelector(".rule-start-row").value = rule.startRow || 1;
+  node.querySelector(".rule-end-row").value = rule.endRow || rule.limit || 7;
   node.querySelector(".rule-format").value = rule.format || "percent";
   node.querySelector(".remove-rule").addEventListener("click", () => {
     node.remove();
@@ -390,8 +391,8 @@ function updateRuleTypeView(ruleNode) {
   const formula = ruleNode.querySelector(".rule-formula");
   formula.textContent =
     type === "total"
-      ? "公式：前 N 条「指标 Tab / 字段」求和"
-      : "公式：前 N 条「分子 Tab / 字段」求和 ÷ 前 N 条「分母 Tab / 字段」求和";
+      ? "公式：第 X 至第 Y 条数据的「指标 Tab / 字段」求和"
+      : "公式：第 X 至第 Y 条数据的「分子 Tab / 字段」求和 ÷「分母 Tab / 字段」求和";
 }
 
 function findDefaultField(targetField) {
@@ -435,7 +436,8 @@ function getRules() {
     .map((node) => ({
       name: node.querySelector(".rule-name").value.trim(),
       type: node.querySelector(".rule-type").value,
-      limit: Number(node.querySelector(".rule-limit").value),
+      startRow: Number(node.querySelector(".rule-start-row").value),
+      endRow: Number(node.querySelector(".rule-end-row").value),
       numeratorSheet: node.querySelector(".rule-numerator-sheet").value,
       numerator: node.querySelector(".rule-numerator").value,
       denominatorSheet: node.querySelector(".rule-denominator-sheet").value,
@@ -447,7 +449,8 @@ function getRules() {
     .filter(
       (rule) =>
         rule.name &&
-        rule.limit > 0 &&
+        rule.startRow > 0 &&
+        rule.endRow >= rule.startRow &&
         ((rule.type === "ratio" &&
           rule.numeratorSheet &&
           rule.numerator &&
@@ -517,12 +520,12 @@ function clearPreview(message) {
 function calculateRule(file, rule) {
   if (file.error) return "";
   if (rule.type === "total") {
-    const rows = getSheetRows(file, rule.totalSheet).slice(0, rule.limit);
+    const rows = getRowsInRange(file, rule.totalSheet, rule);
     return Number(sumField(rows, rule.totalField).toFixed(6));
   }
 
-  const numeratorRows = getSheetRows(file, rule.numeratorSheet).slice(0, rule.limit);
-  const denominatorRows = getSheetRows(file, rule.denominatorSheet).slice(0, rule.limit);
+  const numeratorRows = getRowsInRange(file, rule.numeratorSheet, rule);
+  const denominatorRows = getRowsInRange(file, rule.denominatorSheet, rule);
   const numerator = sumField(numeratorRows, rule.numerator);
   const denominator = sumField(denominatorRows, rule.denominator);
   if (!denominator) return "";
@@ -533,6 +536,10 @@ function calculateRule(file, rule) {
 
 function getSheetRows(file, sheetName) {
   return (file.sheets || []).find((sheet) => sheet.name === sheetName)?.rows || [];
+}
+
+function getRowsInRange(file, sheetName, rule) {
+  return getSheetRows(file, sheetName).slice(rule.startRow - 1, rule.endRow);
 }
 
 function sumField(rows, field) {
