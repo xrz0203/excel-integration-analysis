@@ -110,8 +110,10 @@ async function loadFiles(files) {
     try {
       parsed.push(await parseFile(file));
     } catch (error) {
+      const name = file.webkitRelativePath || file.name;
       parsed.push({
-        name: file.webkitRelativePath || file.name,
+        name,
+        displayName: stripFileExtension(name),
         sheets: [],
         error: error.message || "读取失败",
       });
@@ -131,6 +133,7 @@ async function parseFile(file) {
   if (file.size > LARGE_FILE_BYTES) {
     return {
       name,
+      displayName: stripFileExtension(name),
       sheets: [],
       error: `文件超过 ${formatBytes(LARGE_FILE_BYTES)}，已跳过以避免浏览器崩溃`,
     };
@@ -139,7 +142,7 @@ async function parseFile(file) {
   const workbook = XLSX.read(buffer, { type: "array" });
   const sheetNames = workbook.SheetNames || [];
   if (!sheetNames.length) {
-    return { name, sheets: [], error: "没有工作表" };
+    return { name, displayName: stripFileExtension(name), sheets: [], error: "没有工作表" };
   }
 
   const sheets = sheetNames.map((sheetName) => {
@@ -147,7 +150,7 @@ async function parseFile(file) {
     return parseSheet(sheetName, sheet);
   });
 
-  return { name, sheets, error: "" };
+  return { name, displayName: stripFileExtension(name), sheets, error: "" };
 }
 
 function parseSheet(sheetName, sheet) {
@@ -298,7 +301,7 @@ function renderLoadedState() {
     ? state.files
         .map((file) => {
           if (file.error) {
-            return `<tr><td>${escapeHtml(file.name)}</td><td colspan="3"><span class="warning">${escapeHtml(file.error)}</span></td></tr>`;
+            return `<tr><td>${escapeHtml(getDisplayFileName(file))}</td><td colspan="3"><span class="warning">${escapeHtml(file.error)}</span></td></tr>`;
           }
           return (file.sheets || [])
             .map((sheet, index) => {
@@ -306,7 +309,7 @@ function renderLoadedState() {
                 ? `<span class="warning">${escapeHtml(sheet.error)}</span>`
                 : `${sheet.headers.length}`;
               return `<tr>
-                <td>${index === 0 ? escapeHtml(file.name) : ""}</td>
+                <td>${index === 0 ? escapeHtml(getDisplayFileName(file)) : ""}</td>
                 <td>${escapeHtml(sheet.name)}</td>
                 <td>${status}</td>
                 <td>${sheet.rows.length}</td>
@@ -326,6 +329,9 @@ function ensureDefaultRule() {
 
 function addRule(rule = {}) {
   const node = ruleTemplate.content.firstElementChild.cloneNode(true);
+  node.draggable = true;
+  node.setAttribute("draggable", "true");
+  node.querySelector(".drag-handle").setAttribute("draggable", "true");
   node.querySelector(".rule-name").value = rule.name || "前7日点击率";
   node.querySelector(".rule-type").value = rule.type || "ratio";
   node.querySelector(".rule-start-row").value = rule.startRow || 1;
@@ -336,6 +342,7 @@ function addRule(rule = {}) {
     updateRuleCount();
     buildPreview();
   });
+  attachDragHandlers(node);
 
   for (const input of node.querySelectorAll("input, select")) {
     const handleControlChange = () => {
@@ -488,7 +495,7 @@ function buildPreview() {
 
   const headers = ["文件名", ...activeRules.map((rule) => rule.outputName)];
   const rows = state.files.map((file) => {
-    const row = { 文件名: file.name };
+    const row = { 文件名: getDisplayFileName(file) };
     for (const rule of activeRules) {
       row[rule.outputName] = calculateRule(file, rule);
     }
@@ -679,6 +686,54 @@ function createSampleSheet(name, headers, rowCount, rowFactory) {
     rows: Array.from({ length: rowCount }, (_, index) => rowFactory(index)),
     error: "",
   };
+}
+
+function attachDragHandlers(ruleNode) {
+  ruleNode.addEventListener("dragstart", (event) => {
+    if (!event.target.closest(".drag-handle")) {
+      event.preventDefault();
+      return;
+    }
+    ruleNode.classList.add("dragging");
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", "");
+  });
+
+  ruleNode.addEventListener("dragend", () => {
+    ruleNode.classList.remove("dragging");
+    for (const card of rules.querySelectorAll(".drag-over")) {
+      card.classList.remove("drag-over");
+    }
+    buildPreview();
+  });
+}
+
+rules.addEventListener("dragover", (event) => {
+  event.preventDefault();
+  const dragging = rules.querySelector(".dragging");
+  const target = event.target.closest(".rule-card");
+  if (!dragging || !target || dragging === target) return;
+
+  const targetBox = target.getBoundingClientRect();
+  const insertAfter = event.clientY > targetBox.top + targetBox.height / 2;
+  for (const card of rules.querySelectorAll(".drag-over")) {
+    card.classList.remove("drag-over");
+  }
+  target.classList.add("drag-over");
+  rules.insertBefore(dragging, insertAfter ? target.nextSibling : target);
+});
+
+rules.addEventListener("dragleave", (event) => {
+  const target = event.target.closest(".rule-card");
+  if (target) target.classList.remove("drag-over");
+});
+
+function getDisplayFileName(file) {
+  return file.displayName || stripFileExtension(file.name || "");
+}
+
+function stripFileExtension(name) {
+  return String(name).replace(/\.[^.\\/]+$/u, "");
 }
 
 function getCurrentTimeLabel() {

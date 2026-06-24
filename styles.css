@@ -304,6 +304,14 @@ td {
   padding: 14px;
 }
 
+.rule-card.dragging {
+  opacity: 0.62;
+}
+
+.rule-card.drag-over {
+  border-color: var(--accent);
+}
+
 .rule-card[data-rule-type="ratio"] .total-only,
 .rule-card[data-rule-type="total"] .ratio-only {
   display: none;
@@ -313,7 +321,25 @@ td {
   align-items: flex-start;
   display: grid;
   gap: 10px;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
+}
+
+.drag-handle {
+  align-items: center;
+  background: #edf2ef;
+  color: var(--muted);
+  cursor: grab;
+  display: inline-flex;
+  font-size: 18px;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 .rule-grid {
