@@ -8,7 +8,32 @@
     <script src="./xlsx.full.min.js"></script>
   </head>
   <body>
-    <main class="shell">
+    <section id="authScreen" class="auth-screen">
+      <form id="loginForm" class="auth-card">
+        <p class="eyebrow">Excel Integration and Analysis</p>
+        <h1>登录</h1>
+        <label>
+          <span>邮箱</span>
+          <input id="loginEmail" type="email" autocomplete="email" required />
+        </label>
+        <label>
+          <span>密码</span>
+          <input id="loginPassword" type="password" autocomplete="current-password" required />
+        </label>
+        <button class="primary" type="submit">登录</button>
+        <p id="loginMessage" class="form-message"></p>
+      </form>
+    </section>
+
+    <main id="appShell" class="shell" hidden>
+      <section class="user-bar">
+        <div>
+          <strong id="currentUserName">未登录</strong>
+          <span id="currentUserRole">user</span>
+        </div>
+        <button id="logoutButton" class="secondary" type="button">退出登录</button>
+      </section>
+
       <section class="hero">
         <div>
           <p class="eyebrow">Ops Tool</p>
@@ -85,6 +110,23 @@
             <button id="addRuleButton" class="secondary" type="button">新增指标列</button>
           </div>
 
+          <div class="template-toolbar">
+            <label>
+              <span>模板名称</span>
+              <input id="templateName" type="text" placeholder="例如：每周投放汇总" />
+            </label>
+            <button id="saveTemplateButton" class="secondary" type="button">保存模板</button>
+            <label>
+              <span>已保存模板</span>
+              <select id="templateSelect">
+                <option value="">暂无模板</option>
+              </select>
+            </label>
+            <button id="loadTemplateButton" class="secondary" type="button">载入模板</button>
+            <button id="deleteTemplateButton" class="ghost danger" type="button">删除模板</button>
+          </div>
+          <p id="templateMessage" class="form-message"></p>
+
           <div id="rules" class="rules"></div>
 
           <div class="actions">
@@ -109,6 +151,54 @@
             <tbody>
               <tr>
                 <td>暂无预览</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="adminPanel" class="panel admin-panel" hidden>
+        <div class="panel-header split">
+          <div>
+            <h2>管理员</h2>
+            <p>管理员可以创建用户，并查看所有用户保存的模板。</p>
+          </div>
+        </div>
+        <form id="createUserForm" class="admin-form">
+          <label>
+            <span>用户邮箱</span>
+            <input id="newUserEmail" type="email" required />
+          </label>
+          <label>
+            <span>用户名称</span>
+            <input id="newUserName" type="text" />
+          </label>
+          <label>
+            <span>初始密码</span>
+            <input id="newUserPassword" type="password" required />
+          </label>
+          <label>
+            <span>角色</span>
+            <select id="newUserRole">
+              <option value="user">普通用户</option>
+              <option value="admin">管理员</option>
+            </select>
+          </label>
+          <button class="secondary" type="submit">创建用户</button>
+        </form>
+        <p id="adminMessage" class="form-message"></p>
+        <div class="table-wrap">
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>邮箱</th>
+                <th>名称</th>
+                <th>角色</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody">
+              <tr>
+                <td colspan="3">暂无用户</td>
               </tr>
             </tbody>
           </table>

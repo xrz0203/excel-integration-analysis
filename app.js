@@ -1,4 +1,6 @@
 const state = {
+  currentUser: null,
+  templates: [],
   pendingFiles: [],
   files: [],
   sheetNames: [],
@@ -13,6 +15,23 @@ const state = {
 const MAX_DATA_ROWS = 500;
 const LARGE_FILE_BYTES = 50 * 1024 * 1024;
 
+const authScreen = document.querySelector("#authScreen");
+const appShell = document.querySelector("#appShell");
+const loginForm = document.querySelector("#loginForm");
+const loginEmail = document.querySelector("#loginEmail");
+const loginPassword = document.querySelector("#loginPassword");
+const loginMessage = document.querySelector("#loginMessage");
+const currentUserName = document.querySelector("#currentUserName");
+const currentUserRole = document.querySelector("#currentUserRole");
+const logoutButton = document.querySelector("#logoutButton");
+const adminPanel = document.querySelector("#adminPanel");
+const createUserForm = document.querySelector("#createUserForm");
+const newUserEmail = document.querySelector("#newUserEmail");
+const newUserName = document.querySelector("#newUserName");
+const newUserPassword = document.querySelector("#newUserPassword");
+const newUserRole = document.querySelector("#newUserRole");
+const usersBody = document.querySelector("#usersBody");
+const adminMessage = document.querySelector("#adminMessage");
 const fileInput = document.querySelector("#fileInput");
 const fileCount = document.querySelector("#fileCount");
 const sheetCount = document.querySelector("#sheetCount");
@@ -30,10 +49,28 @@ const addRuleButton = document.querySelector("#addRuleButton");
 const previewButton = document.querySelector("#previewButton");
 const exportButton = document.querySelector("#exportButton");
 const downloadLink = document.querySelector("#downloadLink");
+const templateName = document.querySelector("#templateName");
+const templateSelect = document.querySelector("#templateSelect");
+const saveTemplateButton = document.querySelector("#saveTemplateButton");
+const loadTemplateButton = document.querySelector("#loadTemplateButton");
+const deleteTemplateButton = document.querySelector("#deleteTemplateButton");
+const templateMessage = document.querySelector("#templateMessage");
 const sampleButton = document.querySelector("#sampleButton");
 const previewHint = document.querySelector("#previewHint");
 const previewTable = document.querySelector("#previewTable");
 const ruleTemplate = document.querySelector("#ruleTemplate");
+
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await login();
+});
+
+logoutButton.addEventListener("click", async () => {
+  await apiFetch("/api/logout", { method: "POST" });
+  state.currentUser = null;
+  state.templates = [];
+  renderAuthState();
+});
 
 fileInput.addEventListener("change", async (event) => {
   const selected = Array.from(event.target.files || []).filter(isSupportedFile);
@@ -57,9 +94,199 @@ exportButton.addEventListener("click", () => {
   exportWorkbook();
 });
 
+saveTemplateButton.addEventListener("click", async () => {
+  await saveTemplate();
+});
+
+loadTemplateButton.addEventListener("click", () => {
+  loadSelectedTemplate();
+});
+
+deleteTemplateButton.addEventListener("click", async () => {
+  await deleteSelectedTemplate();
+});
+
 sampleButton.addEventListener("click", () => {
   loadSampleData();
 });
+
+createUserForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await createUser();
+});
+
+async function initAuth() {
+  try {
+    const { user } = await apiFetch("/api/me");
+    state.currentUser = user;
+    renderAuthState();
+    if (user) {
+      await refreshTemplates();
+      if (user.role === "admin") await refreshUsers();
+    }
+  } catch (error) {
+    loginMessage.textContent = error.message;
+    renderAuthState();
+  }
+}
+
+async function login() {
+  loginMessage.textContent = "";
+  try {
+    const { user } = await apiFetch("/api/login", {
+      method: "POST",
+      body: {
+        email: loginEmail.value,
+        password: loginPassword.value,
+      },
+    });
+    state.currentUser = user;
+    loginPassword.value = "";
+    renderAuthState();
+    await refreshTemplates();
+    if (user.role === "admin") await refreshUsers();
+  } catch (error) {
+    loginMessage.textContent = error.message;
+  }
+}
+
+function renderAuthState() {
+  const signedIn = Boolean(state.currentUser);
+  authScreen.hidden = signedIn;
+  appShell.hidden = !signedIn;
+  if (!signedIn) return;
+
+  currentUserName.textContent = `${state.currentUser.name} (${state.currentUser.email})`;
+  currentUserRole.textContent = state.currentUser.role === "admin" ? "管理员" : "普通用户";
+  adminPanel.hidden = state.currentUser.role !== "admin";
+}
+
+async function refreshTemplates() {
+  const { templates } = await apiFetch("/api/templates");
+  state.templates = templates || [];
+  renderTemplateSelect();
+}
+
+function renderTemplateSelect() {
+  templateSelect.innerHTML = state.templates.length
+    ? state.templates
+        .map((template) => {
+          const owner = state.currentUser?.role === "admin" && template.ownerEmail ? ` · ${template.ownerEmail}` : "";
+          return `<option value="${escapeHtml(template.id)}">${escapeHtml(template.name + owner)}</option>`;
+        })
+        .join("")
+    : `<option value="">暂无模板</option>`;
+}
+
+async function saveTemplate() {
+  templateMessage.textContent = "";
+  const rulesConfig = getRuleConfigs();
+  if (!rulesConfig.length) {
+    templateMessage.textContent = "至少需要一条完整的指标规则。";
+    return;
+  }
+  const name = templateName.value.trim();
+  if (!name) {
+    templateMessage.textContent = "请先填写模板名称。";
+    return;
+  }
+  try {
+    const selected = state.templates.find((template) => template.id === templateSelect.value);
+    await apiFetch("/api/templates", {
+      method: "POST",
+      body: {
+        id: selected?.name === name ? selected.id : undefined,
+        name,
+        rules: rulesConfig,
+      },
+    });
+    templateMessage.textContent = "模板已保存。";
+    await refreshTemplates();
+  } catch (error) {
+    templateMessage.textContent = error.message;
+  }
+}
+
+function loadSelectedTemplate() {
+  templateMessage.textContent = "";
+  const template = state.templates.find((item) => item.id === templateSelect.value);
+  if (!template) {
+    templateMessage.textContent = "请选择一个模板。";
+    return;
+  }
+  templateName.value = template.name;
+  rules.innerHTML = "";
+  for (const rule of template.rules || []) {
+    addRule(rule);
+  }
+  ensureDefaultRule();
+  refreshRuleSelects();
+  updateRuleCount();
+  buildPreview();
+  templateMessage.textContent = "模板已载入。";
+}
+
+async function deleteSelectedTemplate() {
+  templateMessage.textContent = "";
+  const id = templateSelect.value;
+  if (!id) {
+    templateMessage.textContent = "请选择一个模板。";
+    return;
+  }
+  try {
+    await apiFetch(`/api/templates/${encodeURIComponent(id)}`, { method: "DELETE" });
+    templateMessage.textContent = "模板已删除。";
+    await refreshTemplates();
+  } catch (error) {
+    templateMessage.textContent = error.message;
+  }
+}
+
+async function refreshUsers() {
+  const { users } = await apiFetch("/api/users");
+  usersBody.innerHTML = users.length
+    ? users
+        .map(
+          (user) => `<tr>
+            <td>${escapeHtml(user.email)}</td>
+            <td>${escapeHtml(user.name)}</td>
+            <td>${user.role === "admin" ? "管理员" : "普通用户"}</td>
+          </tr>`
+        )
+        .join("")
+    : `<tr><td colspan="3">暂无用户</td></tr>`;
+}
+
+async function createUser() {
+  adminMessage.textContent = "";
+  try {
+    await apiFetch("/api/users", {
+      method: "POST",
+      body: {
+        email: newUserEmail.value,
+        name: newUserName.value,
+        password: newUserPassword.value,
+        role: newUserRole.value,
+      },
+    });
+    createUserForm.reset();
+    adminMessage.textContent = "用户已创建。";
+    await refreshUsers();
+  } catch (error) {
+    adminMessage.textContent = error.message;
+  }
+}
+
+async function apiFetch(path, options = {}) {
+  const response = await fetch(path, {
+    method: options.method || "GET",
+    headers: options.body ? { "Content-Type": "application/json" } : undefined,
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "请求失败");
+  return payload;
+}
 
 function isSupportedFile(file) {
   return /\.(xlsx|xls|csv)$/i.test(file.name);
@@ -416,10 +643,13 @@ function findDefaultField(targetField) {
 
 function fillSheetSelect(select, preferredValue) {
   const current = preferredValue || select.value;
-  select.innerHTML = state.sheetNames.length
-    ? state.sheetNames.map((sheetName) => optionHtml(sheetName, sheetName)).join("")
-    : `<option value="">等待 Tab</option>`;
+  const options = state.sheetNames.map((sheetName) => optionHtml(sheetName, sheetName));
+  if (current && !state.sheetNames.includes(current)) {
+    options.unshift(optionHtml(current, `${current}（待匹配）`));
+  }
+  select.innerHTML = options.length ? options.join("") : `<option value="">等待 Tab</option>`;
   if (current && state.sheetNames.includes(current)) select.value = current;
+  if (current && !state.sheetNames.includes(current)) select.value = current;
 }
 
 function updateFieldSelect(ruleNode, side, preferredValue) {
@@ -427,10 +657,13 @@ function updateFieldSelect(ruleNode, side, preferredValue) {
   const fieldSelect = ruleNode.querySelector(side === "total" ? ".rule-total-field" : `.rule-${side}`);
   const fields = state.sheetFields[sheetSelect.value] || [];
   const current = preferredValue || fieldSelect.value;
-  fieldSelect.innerHTML = fields.length
-    ? fields.map((field) => optionHtml(field, field)).join("")
-    : `<option value="">等待字段</option>`;
+  const options = fields.map((field) => optionHtml(field, field));
+  if (current && !fields.includes(current)) {
+    options.unshift(optionHtml(current, `${current}（待匹配）`));
+  }
+  fieldSelect.innerHTML = options.length ? options.join("") : `<option value="">等待字段</option>`;
   if (current && fields.includes(current)) fieldSelect.value = current;
+  if (current && !fields.includes(current)) fieldSelect.value = current;
 }
 
 function optionHtml(value, label) {
@@ -439,6 +672,18 @@ function optionHtml(value, label) {
 
 function getRules() {
   const counts = new Map();
+  return getRuleConfigs()
+    .map((rule) => {
+      const nextCount = (counts.get(rule.name) || 0) + 1;
+      counts.set(rule.name, nextCount);
+      return {
+        ...rule,
+        outputName: nextCount === 1 ? rule.name : `${rule.name} (${nextCount})`,
+      };
+    });
+}
+
+function getRuleConfigs() {
   return Array.from(rules.children)
     .map((node) => ({
       name: node.querySelector(".rule-name").value.trim(),
@@ -464,15 +709,7 @@ function getRules() {
           rule.denominatorSheet &&
           rule.denominator) ||
           (rule.type === "total" && rule.totalSheet && rule.totalField))
-    )
-    .map((rule) => {
-      const nextCount = (counts.get(rule.name) || 0) + 1;
-      counts.set(rule.name, nextCount);
-      return {
-        ...rule,
-        outputName: nextCount === 1 ? rule.name : `${rule.name} (${nextCount})`,
-      };
-    });
+    );
 }
 
 function updateRuleCount() {
@@ -759,3 +996,4 @@ function escapeHtml(value) {
 
 ensureDefaultRule();
 updateRuleCount();
+initAuth();

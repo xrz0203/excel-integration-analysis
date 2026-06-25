@@ -26,6 +26,51 @@ body {
     sans-serif;
 }
 
+.auth-screen {
+  align-items: center;
+  display: flex;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.auth-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 16px;
+  margin: 0 auto;
+  max-width: 420px;
+  padding: 24px;
+  width: 100%;
+}
+
+.auth-card h1 {
+  font-size: 40px;
+}
+
+.user-bar {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0 16px;
+}
+
+.user-bar span {
+  color: var(--muted);
+  display: block;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.form-message {
+  color: var(--warn);
+  font-size: 13px;
+  min-height: 18px;
+}
+
 button,
 input,
 select {
@@ -212,6 +257,10 @@ h2 {
   border: 1px solid var(--line);
 }
 
+.danger {
+  color: var(--bad);
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -296,6 +345,26 @@ td {
 .rules {
   display: grid;
   gap: 14px;
+}
+
+.template-toolbar {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(160px, 1fr) auto minmax(180px, 1fr) auto auto;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+}
+
+.admin-panel {
+  margin-top: 18px;
+}
+
+.admin-form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 10px;
 }
 
 .rule-card {
@@ -477,7 +546,9 @@ select {
 
   .status-band,
   .workspace,
-  .rule-grid {
+  .rule-grid,
+  .template-toolbar,
+  .admin-form {
     grid-template-columns: 1fr;
   }
 
@@ -493,7 +564,9 @@ select {
 
   .folder-picker,
   .split button,
-  .parse-panel button {
+  .parse-panel button,
+  .template-toolbar button,
+  .admin-form button {
     width: 100%;
   }
 }
