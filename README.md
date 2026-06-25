@@ -2,7 +2,7 @@
 
 一个带登录和模板保存能力的 Excel / CSV 汇总工具。它会批量读取同格式文件，自动识别表头字段，并按用户定义的口径生成汇总 Excel。
 
-## 使用方式
+## 本地使用方式
 
 启动后端服务：
 
@@ -61,6 +61,44 @@ NODE_ENV=production
 - 模板保存的是汇总规则配置，不保存上传的 Excel / CSV 文件内容。
 - Excel 文件仍然在浏览器本地解析，不会上传到后端。
 
+## Vercel 部署
+
+当前线上部署使用：
+
+```text
+Vercel 静态页面 + Vercel Functions + Neon/Postgres 数据库
+```
+
+在 Vercel 里导入 GitHub 仓库后，不需要设置 Start Command。Vercel 会自动托管根目录下的静态文件，并把 `api/[...route].mjs` 作为后端接口。
+
+请在 Vercel 项目的 Environment Variables 里配置：
+
+```text
+ADMIN_EMAIL=你的管理员邮箱
+ADMIN_PASSWORD=你的管理员初始密码
+NODE_ENV=production
+```
+
+数据库连接变量支持以下任意一个名称，通常 Neon/Vercel 会自动生成其中之一：
+
+```text
+DATABASE_URL
+POSTGRES_URL
+POSTGRES_PRISMA_URL
+POSTGRES_URL_NON_POOLING
+NEON_DATABASE_URL
+```
+
+第一次访问 API 时会自动创建数据库表：
+
+```text
+users
+sessions
+templates
+```
+
+如果数据库还是空的，并且已经配置了 `ADMIN_EMAIL` 和 `ADMIN_PASSWORD`，系统会自动创建第一个管理员账号。环境变量修改后，需要在 Vercel 里重新部署一次才会生效。
+
 ## 注意
 
 - 每个 Excel 会读取所有工作表。
@@ -69,4 +107,4 @@ NODE_ENV=production
 - 超过 50 MB 的单个文件会被跳过。
 - 同一次上传里，字段不必完全一致；如果某个文件缺少规则需要的 Tab 或字段，对应结果会留空。
 - Excel 读取和导出使用项目内的 `xlsx.full.min.js`，可以离线运行。
-- GitHub Pages 只能运行旧的纯静态版本，不能提供安全登录、用户隔离或模板保存。当前版本需要 Node 后端和可写数据目录。
+- GitHub Pages 只能运行旧的纯静态版本，不能提供安全登录、用户隔离或模板保存。当前版本本地可用 Node 后端，线上应使用 Vercel Functions 和 Neon/Postgres。
