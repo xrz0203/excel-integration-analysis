@@ -1,11 +1,27 @@
 {
-  "framework": null,
-  "buildCommand": null,
-  "outputDirectory": "public",
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/",
-      "destination": "/index.html"
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/**/*.mjs",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/public/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
     }
   ]
 }
