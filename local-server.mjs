@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 const scrypt = promisify(scryptCallback);
 const PORT = Number(process.env.PORT || 4176);
 const ROOT = process.cwd();
+const PUBLIC_ROOT = join(ROOT, "public");
 const DATA_DIR = join(ROOT, "data");
 const DB_PATH = join(DATA_DIR, "db.json");
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -198,8 +199,8 @@ async function serveStatic(res, pathname) {
     sendJson(res, 404, { error: "Not found" });
     return;
   }
-  const filePath = normalize(join(ROOT, safePath));
-  if (!filePath.startsWith(ROOT)) {
+  const filePath = normalize(join(PUBLIC_ROOT, safePath));
+  if (!filePath.startsWith(PUBLIC_ROOT)) {
     sendJson(res, 403, { error: "Forbidden" });
     return;
   }
