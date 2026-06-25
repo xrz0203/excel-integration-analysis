@@ -107,4 +107,4 @@ templates
 - 超过 50 MB 的单个文件会被跳过。
 - 同一次上传里，字段不必完全一致；如果某个文件缺少规则需要的 Tab 或字段，对应结果会留空。
 - Excel 读取和导出使用项目内的 `xlsx.full.min.js`，可以离线运行。
-- GitHub Pages 只能运行旧的纯静态版本，不能提供安全登录、用户隔离或模板保存。当前版本本地可用 Node 后端，线上应使用 Vercel Functions 和 Neon/Postgres。
+- GitHub Pages 只能运行旧的纯静态版本，不能提供安全登录、用户隔离或模板保存。当前版本本地可用 `local-server.mjs` 后端，线上应使用 Vercel Functions 和 Neon/Postgres。
