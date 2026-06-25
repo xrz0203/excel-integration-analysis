@@ -69,7 +69,7 @@ NODE_ENV=production
 Vercel 静态页面 + Vercel Functions + Neon/Postgres 数据库
 ```
 
-在 Vercel 里导入 GitHub 仓库后，不需要设置 Start Command。Vercel 会自动托管 `public/` 里的静态文件，并把 `api/[...route].mjs` 作为后端接口。
+在 Vercel 里导入 GitHub 仓库后，不需要设置 Start Command。Vercel 会自动托管 `public/` 里的静态文件，并把 `api/index.mjs` 作为后端接口。
 
 请在 Vercel 项目的 Environment Variables 里配置：
 

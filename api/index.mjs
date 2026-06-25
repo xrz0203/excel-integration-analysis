@@ -18,6 +18,10 @@ const IS_PROD = process.env.NODE_ENV === "production";
 export default async function handler(req, res) {
   try {
     const url = new URL(req.url, `https://${req.headers.host || "localhost"}`);
+    const routedPath = url.searchParams.get("path");
+    if (routedPath) {
+      url.pathname = `/api/${routedPath.replace(/^\/+/, "")}`;
+    }
     await handleApi(req, res, url);
   } catch (error) {
     sendJson(res, 500, {
