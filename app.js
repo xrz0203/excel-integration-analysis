@@ -131,7 +131,8 @@ async function initAuth() {
 }
 
 async function login() {
-  loginMessage.textContent = "";
+  loginMessage.textContent = "正在登录...";
+  loginForm.querySelector("button[type='submit']").disabled = true;
   try {
     const { user } = await apiFetch("/api/login", {
       method: "POST",
@@ -145,8 +146,11 @@ async function login() {
     renderAuthState();
     await refreshTemplates();
     if (user.role === "admin") await refreshUsers();
+    loginMessage.textContent = "";
   } catch (error) {
     loginMessage.textContent = error.message;
+  } finally {
+    loginForm.querySelector("button[type='submit']").disabled = false;
   }
 }
 
@@ -154,7 +158,12 @@ function renderAuthState() {
   const signedIn = Boolean(state.currentUser);
   authScreen.hidden = signedIn;
   appShell.hidden = !signedIn;
-  if (!signedIn) return;
+  if (!signedIn) {
+    currentUserName.textContent = "未登录";
+    currentUserRole.textContent = "";
+    adminPanel.hidden = true;
+    return;
+  }
 
   currentUserName.textContent = `${state.currentUser.name} (${state.currentUser.email})`;
   currentUserRole.textContent = state.currentUser.role === "admin" ? "管理员" : "普通用户";

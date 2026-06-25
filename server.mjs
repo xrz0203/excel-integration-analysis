@@ -11,6 +11,7 @@ const ROOT = process.cwd();
 const DATA_DIR = join(ROOT, "data");
 const DB_PATH = join(DATA_DIR, "db.json");
 const IS_PROD = process.env.NODE_ENV === "production";
+const HOST = process.env.HOST || (IS_PROD ? "0.0.0.0" : "127.0.0.1");
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -25,8 +26,8 @@ const PUBLIC_FILES = new Set(["/index.html", "/styles.css", "/app.js", "/xlsx.fu
 async function main() {
   await ensureDb();
   const server = createServer(handleRequest);
-  server.listen(PORT, "127.0.0.1", () => {
-    console.log(`Excel Integration and Analysis running at http://127.0.0.1:${PORT}/`);
+  server.listen(PORT, HOST, () => {
+    console.log(`Excel Integration and Analysis running at http://${HOST}:${PORT}/`);
   });
 }
 
